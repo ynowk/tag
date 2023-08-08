@@ -1,0 +1,32 @@
+name: tag
+
+on:
+  push:
+    branches:
+      - 'master'
+    paths:
+      - '.github/workflows/tag.yml'
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: tag
+        run: |
+          RELEASE_LATEST="$(curl -IkLs -o /tmp/NUL -w %{url_effective} https://github.com/brave/brave-browser/releases/latest | grep -o "[^/]*$")"
+          echo "GIT_TAGNAME=v${RELEASE_LATEST#v}" >> $GITHUB_ENV
+      -
+        name: Checkout
+        uses: actions/checkout@v3
+      -
+        name: Set up Git
+        run: |
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+          git config user.name "${GITHUB_ACTOR}"
+          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          git tag -a "${{ env.GIT_TAGNAME }}" "${GITHUB_SHA}" -m "${{ env.GIT_TAGNAME }}"
+          git remote set-url origin "https://${GITHUB_ACTOR}:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git"
+          #git remote set-url origin https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git
+          git push origin "${{ env.GIT_TAGNAME }}"
+          
